@@ -204,6 +204,9 @@ bool GetUniquePathFromEnv(const char* env_name, char* path) {
 #endif
   if (envval == NULL || *envval == '\0')
     return false;
+#if 1 // BJGA: this is too early to append the PID, as we may be forked after the constructor is called
+  snprintf(path, PATH_MAX, "%s", envval);
+#else
   if (envval[0] & 128) {                  // high bit is set
     snprintf(path, PATH_MAX, "%c%s_%u",   // add pid and clear high bit
              envval[0] & 127, envval+1, (unsigned int)(getpid()));
@@ -213,6 +216,7 @@ bool GetUniquePathFromEnv(const char* env_name, char* path) {
     envval[0] |= 128;                     // set high bit for kids to see
 #endif
   }
+#endif
   return true;
 }
 

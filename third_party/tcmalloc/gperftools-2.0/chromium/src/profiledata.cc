@@ -94,12 +94,15 @@ bool ProfileData::Start(const char* fname,
     return false;
   }
 
+  // Initialize various data structures
+#if 0 // BJGA
   // Open output file and initialize various data structures
   int fd = open(fname, O_CREAT | O_WRONLY | O_TRUNC, 0666);
   if (fd < 0) {
     // Can't open outfile for write
     return false;
   }
+#endif
 
   start_time_ = time(NULL);
   fname_ = strdup(fname);
@@ -123,7 +126,11 @@ bool ProfileData::Start(const char* fname,
   evict_[num_evicted_++] = period;                // Period (microseconds)
   evict_[num_evicted_++] = 0;                     // Padding
 
+#if 1 // BJGA
+  out_ = 0; // Special value to flag that we want to enable collection but haven't yet opened the output file
+#else
   out_ = fd;
+#endif
 
   return true;
 }
@@ -161,10 +168,21 @@ static void DumpProcSelfMaps(int fd) {
   }
 }
 
+void ProfileData::EnsureFileOpen() {
+    if (out_ > 0)
+        return;
+
+    char true_fname[PATH_MAX];
+    snprintf(true_fname, PATH_MAX, "%s_%d", fname_, getpid());
+
+    out_ = open(true_fname, O_CREAT | O_WRONLY | O_TRUNC, 0666);
+}
+
 void ProfileData::Stop() {
   if (!enabled()) {
     return;
   }
+  EnsureFileOpen();
 
   // Move data from hash table to eviction buffer
   for (int b = 0; b < kBuckets; b++) {
@@ -203,7 +221,8 @@ void ProfileData::Reset() {
   // Don't reset count_, evictions_, or total_bytes_ here.  They're used
   // by Stop to print information about the profile after reset, and are
   // cleared by Start when starting a new profile.
-  close(out_);
+  if (out_ != 0)
+      close(out_);
   delete[] hash_;
   hash_ = 0;
   delete[] evict_;
@@ -322,10 +341,12 @@ void ProfileData::Add(int depth, const void* const* stack) {
 // re-entrant).  However, that's not part of its public interface.
 void ProfileData::FlushEvicted() {
   if (num_evicted_ > 0) {
+    EnsureFileOpen();
     const char* buf = reinterpret_cast<char*>(evict_);
     size_t bytes = sizeof(evict_[0]) * num_evicted_;
     total_bytes_ += bytes;
-    FDWrite(out_, buf, bytes);
+    if (out_ > 0)
+      FDWrite(out_, buf, bytes);
   }
   num_evicted_ = 0;
 }

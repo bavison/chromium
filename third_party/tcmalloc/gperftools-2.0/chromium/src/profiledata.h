@@ -114,6 +114,10 @@ class ProfileData {
   // false.
   bool Start(const char *fname, const Options& options);
 
+  // Lazy file open - means the PID used for generating the filename is
+  // read after any forking happens
+  void EnsureFileOpen();
+
   // If data collection is enabled, stop data collection and write the
   // data to disk.
   void Stop();
