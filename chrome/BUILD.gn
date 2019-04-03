@@ -26,6 +26,7 @@ import("//tools/resources/generate_resource_whitelist.gni")
 import("//tools/v8_context_snapshot/v8_context_snapshot.gni")
 import("//ui/gl/features.gni")
 import("//v8/gni/v8.gni")
+import("//build/config/sysroot.gni")
 
 if (is_android) {
   import("//build/config/android/rules.gni")
@@ -300,6 +301,12 @@ if (!is_android && !is_mac) {
         if (enable_mus) {
           deps += [ "//mash/common" ]
         }
+
+        ldflags += [
+         "-L$sysroot/usr/local/lib",
+         "-Wl,--rpath=/usr/local/lib,--rpath-link=$sysroot/usr/local/lib",
+         "-lprofiler", "-lunwind",
+        ]
       }
 
       if (is_chromeos || is_win) {
