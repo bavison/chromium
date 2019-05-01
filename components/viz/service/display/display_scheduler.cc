@@ -13,6 +13,15 @@
 #include "components/viz/common/surfaces/surface_info.h"
 #include "components/viz/service/display/output_surface.h"
 
+#include <iostream>
+#include <thread>
+#include <mutex>
+#include <sys/syscall.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include "gperftools/profiler.h"
+
 namespace viz {
 
 DisplayScheduler::DisplayScheduler(BeginFrameSource* begin_frame_source,
@@ -496,6 +505,13 @@ bool DisplayScheduler::AttemptDrawAndSwap() {
 }
 
 void DisplayScheduler::OnBeginFrameDeadline() {
+  static std::once_flag f;
+  std::call_once(f, [](){
+    long tid = syscall(SYS_gettid);
+    std::cout << __PRETTY_FUNCTION__ << ": TID " << tid << std::endl;
+    ProfilerStart("/home/pi/profiles/chrome.prof");
+  });
+
   TRACE_EVENT0("viz", "DisplayScheduler::OnBeginFrameDeadline");
   DCHECK(inside_begin_frame_deadline_interval_);
 

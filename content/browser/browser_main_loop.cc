@@ -254,6 +254,9 @@
 #undef DestroyAll
 #endif
 
+//#include "gperftools/profiler.h"
+extern "C" void ProfilerStop();
+
 namespace content {
 namespace {
 
@@ -1005,6 +1008,7 @@ void BrowserMainLoop::RunMainMessageLoopParts() {
 }
 
 void BrowserMainLoop::ShutdownThreadsAndCleanUp() {
+  ProfilerStop();
   if (!created_threads_) {
     // Called early, nothing to do
     return;
